@@ -1,0 +1,179 @@
+You are a senior full-stack developer.
+
+I am building a web app to help Tunisian BAC students choose which filières they can access based on their score.
+
+I will provide a CSV file containing data extracted from a PDF. The CSV contains Arabic columns (DO NOT rename them).
+
+Example columns (in Arabic):
+- الشعبة (BAC section)
+- الإختصاص (filière)
+- المؤسسة (university)
+- المعدل (last admitted score)
+- السنة (year)
+
+---
+
+## 🎯 Goal
+
+Build a modern, responsive web application that:
+- Takes user input (BAC section + score)
+- Filters and recommends available filières
+- Displays probability of admission
+
+---
+
+## ⚙️ Tech Stack
+
+- Frontend: React (Vite)
+- Styling: TailwindCSS
+- Data source: CSV file (local, no backend)
+- Use PapaParse or similar to parse CSV
+
+---
+
+## 📦 Data Handling
+
+- Load and parse the CSV file at runtime
+- Keep Arabic column names as-is
+- Internally map them to variables for easier use
+
+Example mapping:
+- section = item["الشعبة"]
+- filiere = item["الإختصاص"]
+- university = item["المؤسسة"]
+- score = Number(item["المعدل"])
+- year = item["السنة"]
+
+---
+
+## 🧩 Features
+
+### 1. Inputs
+- Dropdown: BAC section (populate dynamically from CSV)
+- Input: student score (number)
+
+---
+
+### 2. Filtering Logic
+
+Display filières where:
+- score <= student_score
+OR
+- score <= student_score + 10
+
+Also filter by selected section.
+
+---
+
+### 3. Categorization
+
+For each result:
+
+Let diff = student_score - score
+
+- Safe → diff >= 5
+- Competitive → -5 <= diff < 5
+- Reach → -10 <= diff < -5
+
+---
+
+### 4. Probability Calculation
+
+Implement:
+
+- diff >= 10 → 95%
+- diff >= 5 → 80%
+- diff >= 0 → 65%
+- diff >= -5 → 40%
+- diff >= -10 → 20%
+
+---
+
+### 5. UI Requirements
+
+- Clean modern UI (SaaS style)
+- RTL support (Arabic layout)
+- Cards for each filière
+- Show:
+  - الإختصاص
+  - المؤسسة
+  - المعدل + السنة
+  - probability %
+
+- Color badges:
+  - Green (Safe)
+  - Yellow (Competitive)
+  - Red (Reach)
+
+---
+
+### 6. Advanced Features
+
+- Filter by year:
+  - All / 2023 / 2024 / 2025 / Average
+
+- Search bar:
+  - Search by الإختصاص or المؤسسة
+
+- Sorting:
+  - Highest probability
+  - Lowest score
+  - Alphabetical
+
+---
+
+### 7. Smart Logic
+
+- Give higher weight to recent years:
+  2025 > 2024 > 2023
+
+- If score trend is increasing over years:
+  → reduce probability slightly
+
+- If decreasing:
+  → increase probability
+
+- Add labels:
+  - "📈 Trending Up"
+  - "📉 Trending Down"
+
+---
+
+### 8. Performance
+
+- Use useMemo for filtering
+- Avoid unnecessary re-renders
+
+---
+
+### 9. Output
+
+Generate:
+1. Full React app code
+2. CSV parsing logic
+3. Components:
+   - FilterForm
+   - ResultsList
+   - FiliereCard
+4. Utility functions:
+   - getProbability
+   - getCategory
+   - computeTrend
+
+---
+
+### 10. UX Details
+
+- Show message if no results
+- Show loading state while parsing CSV
+- Mobile responsive
+- Smooth transitions
+
+---
+
+### ⚠️ Important
+
+- Do NOT translate Arabic text
+- Ensure RTL layout works properly
+- Handle missing or malformed data
+- Keep code clean and modular
