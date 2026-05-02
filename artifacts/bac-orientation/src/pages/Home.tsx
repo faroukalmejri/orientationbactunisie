@@ -2,27 +2,29 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useCSVData } from "../hooks/useCSVData";
 import { FilterForm } from "../components/FilterForm";
 import { ResultsList } from "../components/ResultsList";
-import { 
-  YearFilter, 
-  getEffectiveScore, 
-  getCategory, 
-  getProbability, 
-  computeTrend 
+import {
+  YearFilter,
+  SortOption,
+  getEffectiveScore,
+  getCategory,
+  getProbability,
+  computeTrend,
 } from "../utils/logic";
 import { GraduationCap } from "lucide-react";
 
 export default function Home() {
   const { data, loading, error } = useCSVData();
-  
+
   const [selectedDomaine, setSelectedDomaine] = useState<string>("");
   const [score, setScore] = useState<number | "">("");
   const [yearFilter, setYearFilter] = useState<YearFilter>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortOption, setSortOption] = useState<"probability" | "score" | "alphabetical">("probability");
+  const [sortOption, setSortOption] = useState<SortOption>("prob-desc");
+  const [selectedRegion, setSelectedRegion] = useState<string>("الكل");
 
   const domaines = useMemo(() => {
     if (!data) return [];
-    const unique = new Set(data.map(r => r.domaine).filter(Boolean));
+    const unique = new Set(data.map((r) => r.domaine).filter(Boolean));
     return Array.from(unique).sort();
   }, [data]);
 
@@ -37,61 +39,65 @@ export default function Home() {
 
     const numScore = Number(score);
 
-    const filtered = data
-      .filter(row => row.domaine === selectedDomaine)
-      .map(row => {
+    const mapped = data
+      .filter((row) => row.domaine === selectedDomaine)
+      .map((row) => {
         const effectiveScore = getEffectiveScore(row, yearFilter);
         if (effectiveScore === null) return null;
 
         const diff = numScore - effectiveScore;
-        
-        // Filter out unreachable: diff >= -10
         if (diff < -10) return null;
 
         const trend = computeTrend(row);
         const category = getCategory(diff);
         const probability = getProbability(diff, trend);
 
-        return {
-          item: row,
-          effectiveScore,
-          category,
-          probability,
-          trend,
-          diff
-        };
+        return { item: row, effectiveScore, diff, category, probability, trend };
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);
 
-    // Apply search query
-    let searched = filtered;
+    // Region filter
+    let results = selectedRegion === "الكل"
+      ? mapped
+      : mapped.filter((r) => r.item.region === selectedRegion);
+
+    // Search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      searched = filtered.filter(r => 
-        (r.item.specialite && r.item.specialite.toLowerCase().includes(q)) ||
-        (r.item.etablissement && r.item.etablissement.toLowerCase().includes(q)) ||
-        (r.item.universite && r.item.universite.toLowerCase().includes(q))
+      results = results.filter(
+        (r) =>
+          r.item.specialite?.toLowerCase().includes(q) ||
+          r.item.etablissement?.toLowerCase().includes(q) ||
+          r.item.universite?.toLowerCase().includes(q)
       );
     }
 
-    // Apply sorting
-    searched.sort((a, b) => {
-      if (sortOption === "probability") {
-        if (b.probability !== a.probability) return b.probability - a.probability;
-        return b.diff - a.diff;
+    // Sort
+    results = [...results].sort((a, b) => {
+      switch (sortOption) {
+        case "prob-desc":
+          return b.probability !== a.probability
+            ? b.probability - a.probability
+            : b.diff - a.diff;
+        case "prob-asc":
+          return a.probability !== b.probability
+            ? a.probability - b.probability
+            : a.diff - b.diff;
+        case "score-asc":
+          return a.effectiveScore - b.effectiveScore;
+        case "score-desc":
+          return b.effectiveScore - a.effectiveScore;
+        case "alpha-asc":
+          return a.item.specialite.localeCompare(b.item.specialite, "ar");
+        case "alpha-desc":
+          return b.item.specialite.localeCompare(a.item.specialite, "ar");
+        default:
+          return 0;
       }
-      if (sortOption === "score") {
-        return a.effectiveScore - b.effectiveScore;
-      }
-      if (sortOption === "alphabetical") {
-        return a.item.specialite.localeCompare(b.item.specialite, 'ar');
-      }
-      return 0;
     });
 
-    return searched;
-
-  }, [data, score, selectedDomaine, yearFilter, searchQuery, sortOption]);
+    return results;
+  }, [data, score, selectedDomaine, yearFilter, searchQuery, sortOption, selectedRegion]);
 
   if (error) {
     return (
@@ -105,7 +111,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-slate-50 pb-20">
       <header className="bg-primary text-primary-foreground py-12 px-6 rounded-b-[2.5rem] shadow-sm mb-10">
         <div className="container mx-auto max-w-7xl flex flex-col items-center text-center">
           <div className="bg-primary-foreground/10 p-4 rounded-full mb-6">
@@ -118,7 +124,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="container mx-auto max-w-7xl px-6 space-y-10">
+      <main className="container mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
         <section className="-mt-20 relative z-10">
           <FilterForm
             domaines={domaines}
@@ -132,6 +138,8 @@ export default function Home() {
             onSearchChange={setSearchQuery}
             sortOption={sortOption}
             onSortChange={setSortOption}
+            selectedRegion={selectedRegion}
+            onRegionChange={setSelectedRegion}
           />
         </section>
 
@@ -142,7 +150,7 @@ export default function Home() {
           </div>
         ) : (
           <section>
-            <ResultsList results={processedResults} loading={loading} />
+            <ResultsList results={processedResults} loading={loading} yearFilter={yearFilter} />
           </section>
         )}
       </main>

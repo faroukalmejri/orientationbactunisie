@@ -1,5 +1,6 @@
 import React from "react";
-import { YearFilter } from "../utils/logic";
+import { YearFilter, SortOption } from "../utils/logic";
+import { ALL_REGIONS } from "../utils/regions";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,8 +17,10 @@ interface FilterFormProps {
   onYearFilterChange: (filter: YearFilter) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  sortOption: "probability" | "score" | "alphabetical";
-  onSortChange: (sort: "probability" | "score" | "alphabetical") => void;
+  sortOption: SortOption;
+  onSortChange: (sort: SortOption) => void;
+  selectedRegion: string;
+  onRegionChange: (region: string) => void;
 }
 
 export function FilterForm({
@@ -32,28 +35,29 @@ export function FilterForm({
   onSearchChange,
   sortOption,
   onSortChange,
+  selectedRegion,
+  onRegionChange,
 }: FilterFormProps) {
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-border space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="space-y-2">
-          <Label htmlFor="domaine-select">شعبتك</Label>
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
+      {/* Row 1: main filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="domaine-select" className="text-xs text-slate-500 font-medium">شعبتك</Label>
           <Select value={selectedDomaine} onValueChange={onDomaineChange}>
-            <SelectTrigger id="domaine-select" data-testid="select-domaine">
+            <SelectTrigger id="domaine-select" data-testid="select-domaine" className="h-10">
               <SelectValue placeholder="اختر شعبتك" />
             </SelectTrigger>
             <SelectContent>
               {domaines.map((d) => (
-                <SelectItem key={d} value={d} data-testid={`option-domaine-${d}`}>
-                  {d}
-                </SelectItem>
+                <SelectItem key={d} value={d} data-testid={`option-domaine-${d}`}>{d}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="score-input">معدلك</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="score-input" className="text-xs text-slate-500 font-medium">معدلك</Label>
           <Input
             id="score-input"
             type="number"
@@ -64,18 +68,34 @@ export function FilterForm({
             value={score}
             onChange={(e) => onScoreChange(e.target.value ? parseFloat(e.target.value) : "")}
             data-testid="input-score"
+            className="h-10"
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="search-input">بحث</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="region-select" className="text-xs text-slate-500 font-medium">الجهة</Label>
+          <Select value={selectedRegion} onValueChange={onRegionChange}>
+            <SelectTrigger id="region-select" data-testid="select-region" className="h-10">
+              <SelectValue placeholder="كل الجهات" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="الكل">كل الجهات</SelectItem>
+              {ALL_REGIONS.map((r) => (
+                <SelectItem key={r} value={r} data-testid={`option-region-${r}`}>{r}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="search-input" className="text-xs text-slate-500 font-medium">بحث</Label>
           <div className="relative">
-            <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               id="search-input"
               type="search"
-              placeholder="ابحث عن شعبة أو مؤسسة..."
-              className="pr-9"
+              placeholder="شعبة أو مؤسسة..."
+              className="pr-9 h-10"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               data-testid="input-search"
@@ -83,26 +103,30 @@ export function FilterForm({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="sort-select">ترتيب حسب</Label>
-          <Select value={sortOption} onValueChange={onSortChange as any}>
-            <SelectTrigger id="sort-select" data-testid="select-sort">
-              <SelectValue placeholder="ترتيب حسب" />
+        <div className="space-y-1.5">
+          <Label htmlFor="sort-select" className="text-xs text-slate-500 font-medium">ترتيب حسب</Label>
+          <Select value={sortOption} onValueChange={(v) => onSortChange(v as SortOption)}>
+            <SelectTrigger id="sort-select" data-testid="select-sort" className="h-10">
+              <SelectValue placeholder="ترتيب" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="probability" data-testid="option-sort-probability">فرصة القبول (الأعلى)</SelectItem>
-              <SelectItem value="score" data-testid="option-sort-score">المعدل المطلوب (الأقل)</SelectItem>
-              <SelectItem value="alphabetical" data-testid="option-sort-alphabetical">أبجديا</SelectItem>
+              <SelectItem value="prob-desc" data-testid="option-sort-prob-desc">أعلى احتمال قبول</SelectItem>
+              <SelectItem value="prob-asc"  data-testid="option-sort-prob-asc">أدنى احتمال قبول</SelectItem>
+              <SelectItem value="score-asc" data-testid="option-sort-score-asc">أقل معدل مطلوب</SelectItem>
+              <SelectItem value="score-desc" data-testid="option-sort-score-desc">أعلى معدل مطلوب</SelectItem>
+              <SelectItem value="alpha-asc" data-testid="option-sort-alpha-asc">أبجدياً (أ → ي)</SelectItem>
+              <SelectItem value="alpha-desc" data-testid="option-sort-alpha-desc">أبجدياً (ي → أ)</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label>طريقة حساب المعدل المرجعي</Label>
+      {/* Row 2: year filter */}
+      <div className="space-y-1.5">
+        <Label className="text-xs text-slate-500 font-medium">طريقة حساب المعدل المرجعي</Label>
         <Tabs value={yearFilter} onValueChange={(v) => onYearFilterChange(v as YearFilter)}>
-          <TabsList className="grid w-full max-w-2xl grid-cols-5" dir="rtl">
-            <TabsTrigger value="الكل" data-testid="tab-year-all">الكل (مرجح)</TabsTrigger>
+          <TabsList className="grid w-full max-w-xl grid-cols-5" dir="rtl">
+            <TabsTrigger value="الكل"  data-testid="tab-year-all">الكل (مرجح)</TabsTrigger>
             <TabsTrigger value="معدل" data-testid="tab-year-avg">معدل</TabsTrigger>
             <TabsTrigger value="2025" data-testid="tab-year-2025">2025</TabsTrigger>
             <TabsTrigger value="2024" data-testid="tab-year-2024">2024</TabsTrigger>

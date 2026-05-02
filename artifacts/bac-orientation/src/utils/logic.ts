@@ -1,6 +1,7 @@
 export type YearFilter = "الكل" | "معدل" | "2023" | "2024" | "2025";
 export type Category = "مضمون" | "تنافسي" | "طموح";
 export type Trend = "up" | "down" | "stable";
+export type SortOption = "prob-desc" | "prob-asc" | "score-asc" | "score-desc" | "alpha-asc" | "alpha-desc";
 
 export interface CSVRow {
   domaine: string;
@@ -11,12 +12,13 @@ export interface CSVRow {
   score_2023?: number | null;
   score_2024?: number | null;
   score_2025?: number | null;
+  region: string;
 }
 
 export function computeTrend(row: CSVRow): Trend {
   if (row.score_2025 != null && row.score_2023 != null) {
-    if (row.score_2025 > row.score_2023) return "up";
-    if (row.score_2025 < row.score_2023) return "down";
+    if (row.score_2025 > row.score_2023 + 1) return "up";
+    if (row.score_2025 < row.score_2023 - 1) return "down";
   }
   return "stable";
 }
@@ -37,10 +39,9 @@ export function getEffectiveScore(row: CSVRow, yearFilter: YearFilter): number |
     return scores.reduce((a, b) => a + b, 0) / scores.length;
   }
 
-  // "الكل" -> weighted average (2025x3, 2024x2, 2023x1)
+  // "الكل" -> weighted average (2025×3, 2024×2, 2023×1)
   let sum = 0;
   let weights = 0;
-  
   if (s25 != null) { sum += s25 * 3; weights += 3; }
   if (s24 != null) { sum += s24 * 2; weights += 2; }
   if (s23 != null) { sum += s23 * 1; weights += 1; }
