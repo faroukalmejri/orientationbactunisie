@@ -6,7 +6,7 @@ import { ALL_REGIONS } from "../utils/regions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Loader2 } from "lucide-react";
+import { GraduationCap, Loader2, CheckCircle } from "lucide-react";
 
 export default function SignUp() {
   const [, setLocation] = useLocation();
@@ -20,6 +20,7 @@ export default function SignUp() {
   const [section, setSection] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   const domaines = useMemo(() => {
     if (!data) return [];
@@ -38,31 +39,75 @@ export default function SignUp() {
 
     setLoading(true);
     try {
+      // Step 1: Sign up — pass profile data as metadata so the DB trigger picks it up
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: { name, phone, region, section },
+        },
       });
 
       if (authError) throw authError;
       if (!authData.user) throw new Error("فشل إنشاء الحساب");
 
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: authData.user.id,
-        name,
-        phone,
-        region,
-        section,
-        email,
-      });
+      const userId = authData.user.id;
+      console.log("[signup] user created, id:", userId);
 
-      if (profileError) throw profileError;
+      // Step 2: If we have an active session (email confirmation disabled),
+      // insert the profile directly. If not, the DB trigger handles it.
+      if (authData.session) {
+        console.log("[signup] session active — inserting profile directly");
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert([{ id: userId, name, phone, region, section, email }]);
 
-      setLocation("/");
+        if (profileError) {
+          // Non-fatal: trigger may have already inserted it
+          console.warn("[signup] profile upsert warning:", profileError.message);
+        } else {
+          console.log("[signup] profile inserted successfully");
+        }
+        setLocation("/");
+      } else {
+        // Email confirmation required — profile will be created by DB trigger on confirm
+        console.log("[signup] email confirmation required");
+        setNeedsConfirmation(true);
+      }
     } catch (err: any) {
-      setError(err.message || "حدث خطأ غير متوقع");
+      const msg = err.message || "";
+      if (msg.includes("already registered") || msg.includes("User already registered")) {
+        setError("هذا البريد الإلكتروني مسجل مسبقاً. جرب تسجيل الدخول.");
+      } else {
+        setError(msg || "حدث خطأ غير متوقع");
+      }
+      console.error("[signup] error:", err);
     } finally {
       setLoading(false);
     }
+  }
+
+  if (needsConfirmation) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4" dir="rtl">
+        <div className="w-full max-w-sm text-center bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+          <div className="inline-flex bg-emerald-50 p-4 rounded-full mb-4">
+            <CheckCircle className="w-10 h-10 text-emerald-500" />
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">تحقق من بريدك الإلكتروني</h2>
+          <p className="text-slate-500 text-sm mb-6">
+            أرسلنا رابط تأكيد إلى <span className="font-semibold text-slate-700">{email}</span>.
+            بعد التأكيد، سيتم حفظ بياناتك تلقائياً.
+          </p>
+          <button
+            onClick={() => setLocation("/signin")}
+            className="w-full bg-primary text-primary-foreground font-bold py-3 rounded-xl hover:opacity-90 transition-opacity"
+          >
+            الذهاب إلى تسجيل الدخول
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

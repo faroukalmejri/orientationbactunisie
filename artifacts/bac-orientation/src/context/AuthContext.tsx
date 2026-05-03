@@ -26,21 +26,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function fetchProfile(userId: string) {
+  async function fetchProfile(userId: string, userEmail?: string) {
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
+
+      if (error) {
+        // PGRST116 = no rows found (normal before DB trigger fires or table created)
+        if (error.code !== "PGRST116") {
+          console.warn("[auth] fetchProfile error:", error.code, error.message);
+        }
+        setProfile(null);
+        return;
+      }
+
+      console.log("[auth] profile loaded:", data);
       setProfile(data ?? null);
-    } catch {
+    } catch (err) {
+      console.error("[auth] fetchProfile exception:", err);
       setProfile(null);
     }
   }
 
   async function refreshProfile() {
-    if (user) await fetchProfile(user.id);
+    if (user) await fetchProfile(user.id, user.email ?? undefined);
   }
 
   useEffect(() => {
@@ -48,17 +60,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false));
+        fetchProfile(session.user.id, session.user.email).finally(() =>
+          setLoading(false)
+        );
       } else {
         setLoading(false);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id, session.user.email ?? undefined);
       } else {
         setProfile(null);
       }
@@ -72,7 +88,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{ session, user, profile, loading, signOut, refreshProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );
