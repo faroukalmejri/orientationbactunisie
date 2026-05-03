@@ -3,24 +3,25 @@ import { useCSVData } from "../hooks/useCSVData";
 import { FilterForm } from "../components/FilterForm";
 import { ResultsList } from "../components/ResultsList";
 import {
-  YearFilter,
   SortOption,
   getEffectiveScore,
   getCategory,
   getProbability,
   computeTrend,
 } from "../utils/logic";
+import { useAuth } from "../context/AuthContext";
 import { GraduationCap } from "lucide-react";
 
 export default function Home() {
   const { data, loading, error } = useCSVData();
+  const { profile, user } = useAuth();
 
   const [selectedDomaine, setSelectedDomaine] = useState<string>("");
   const [score, setScore] = useState<number | "">("");
-  const [yearFilter, setYearFilter] = useState<YearFilter>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("prob-desc");
   const [selectedRegion, setSelectedRegion] = useState<string>("الكل");
+  const [profileSectionApplied, setProfileSectionApplied] = useState(false);
 
   const domaines = useMemo(() => {
     if (!data) return [];
@@ -28,11 +29,25 @@ export default function Home() {
     return Array.from(unique).sort();
   }, [data]);
 
+  // Auto-select section from user profile (runs once when profile + domaines are ready)
   useEffect(() => {
-    if (domaines.length > 0 && !selectedDomaine) {
+    if (profileSectionApplied) return;
+    if (domaines.length === 0) return;
+
+    const section = profile?.section ?? user?.user_metadata?.section ?? null;
+
+    if (section && domaines.includes(section)) {
+      setSelectedDomaine(section);
+      setProfileSectionApplied(true);
+    } else if (!section && !selectedDomaine) {
+      // No profile section — fall back to first domaine
       setSelectedDomaine(domaines[0]);
+      setProfileSectionApplied(true);
     }
-  }, [domaines, selectedDomaine]);
+  }, [domaines, profile, user, profileSectionApplied, selectedDomaine]);
+
+  // Always use weighted average (الكل) as the reference score method
+  const YEAR_FILTER = "الكل" as const;
 
   const processedResults = useMemo(() => {
     if (!data || score === "" || !selectedDomaine) return [];
@@ -42,7 +57,7 @@ export default function Home() {
     const mapped = data
       .filter((row) => row.domaine === selectedDomaine)
       .map((row) => {
-        const effectiveScore = getEffectiveScore(row, yearFilter);
+        const effectiveScore = getEffectiveScore(row, YEAR_FILTER);
         if (effectiveScore === null) return null;
 
         const diff = numScore - effectiveScore;
@@ -56,12 +71,10 @@ export default function Home() {
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);
 
-    // Region filter
     let results = selectedRegion === "الكل"
       ? mapped
       : mapped.filter((r) => r.item.region === selectedRegion);
 
-    // Search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       results = results.filter(
@@ -72,7 +85,6 @@ export default function Home() {
       );
     }
 
-    // Sort
     results = [...results].sort((a, b) => {
       switch (sortOption) {
         case "prob-desc":
@@ -83,21 +95,16 @@ export default function Home() {
           return a.probability !== b.probability
             ? a.probability - b.probability
             : a.diff - b.diff;
-        case "score-asc":
-          return a.effectiveScore - b.effectiveScore;
-        case "score-desc":
-          return b.effectiveScore - a.effectiveScore;
-        case "alpha-asc":
-          return a.item.specialite.localeCompare(b.item.specialite, "ar");
-        case "alpha-desc":
-          return b.item.specialite.localeCompare(a.item.specialite, "ar");
-        default:
-          return 0;
+        case "score-asc":  return a.effectiveScore - b.effectiveScore;
+        case "score-desc": return b.effectiveScore - a.effectiveScore;
+        case "alpha-asc":  return a.item.specialite.localeCompare(b.item.specialite, "ar");
+        case "alpha-desc": return b.item.specialite.localeCompare(a.item.specialite, "ar");
+        default:           return 0;
       }
     });
 
     return results;
-  }, [data, score, selectedDomaine, yearFilter, searchQuery, sortOption, selectedRegion]);
+  }, [data, score, selectedDomaine, searchQuery, sortOption, selectedRegion]);
 
   if (error) {
     return (
@@ -111,29 +118,32 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 pt-14">
-      <header className="bg-primary text-primary-foreground py-12 px-6 rounded-b-[2.5rem] shadow-sm mb-10">
+    <div className="min-h-full bg-slate-50 pb-20 pt-6">
+      <header className="bg-primary text-primary-foreground py-10 px-6 rounded-b-[2.5rem] shadow-sm mb-10 mx-4 rounded-t-2xl">
         <div className="container mx-auto max-w-7xl flex flex-col items-center text-center">
-          <div className="bg-primary-foreground/10 p-4 rounded-full mb-6">
-            <GraduationCap className="w-12 h-12" />
+          <div className="bg-primary-foreground/10 p-4 rounded-full mb-4">
+            <GraduationCap className="w-10 h-10" />
           </div>
-          <h1 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">توجيه الباكالوريا</h1>
-          <p className="text-primary-foreground/80 text-lg md:text-xl max-w-2xl">
-            اكتشف الشعب المتاحة بناءً على معدلك. أدخل معدلك وشعبتك لترى توقعات القبول في مختلف الجامعات التونسية.
+          <h1 className="text-3xl md:text-4xl font-bold mb-3 tracking-tight">توجيه الباكالوريا</h1>
+          <p className="text-primary-foreground/80 text-base md:text-lg max-w-2xl">
+            اكتشف الشعب المتاحة بناءً على معدلك. أدخل معدلك لترى توقعات القبول في مختلف الجامعات التونسية.
           </p>
+          {profile?.section && (
+            <div className="mt-3 bg-primary-foreground/15 px-4 py-1.5 rounded-full text-sm font-medium">
+              شعبتك: {profile.section}
+            </div>
+          )}
         </div>
       </header>
 
       <main className="container mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
-        <section className="-mt-20 relative z-10">
+        <section className="-mt-16 relative z-10">
           <FilterForm
             domaines={domaines}
             selectedDomaine={selectedDomaine}
             onDomaineChange={setSelectedDomaine}
             score={score}
             onScoreChange={setScore}
-            yearFilter={yearFilter}
-            onYearFilterChange={setYearFilter}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             sortOption={sortOption}
@@ -150,7 +160,7 @@ export default function Home() {
           </div>
         ) : (
           <section>
-            <ResultsList results={processedResults} loading={loading} yearFilter={yearFilter} />
+            <ResultsList results={processedResults} loading={loading} yearFilter={YEAR_FILTER} />
           </section>
         )}
       </main>

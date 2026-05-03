@@ -1,0 +1,116 @@
+You are a senior React developer.
+
+I already have:
+- Supabase authentication
+- A profiles table with user data (including "section")
+- An orientation page with filters (section, region, search, etc.)
+
+I want to improve the UX with personalization.
+
+---
+
+# 🎯 1. AUTO-SELECT USER SECTION (IMPORTANT)
+
+When a user logs in:
+
+- Automatically fetch the user's profile from Supabase
+- Get the "section" field (BAC section)
+
+---
+
+## Behavior:
+
+- Set the "section" filter DEFAULT value to the user's section
+- This should happen automatically on page load
+- User can still change it manually if they want
+
+---
+
+## Implementation:
+
+1. Fetch profile:
+
+const { data } = await supabase
+  .from("profiles")
+  .select("section")
+  .eq("id", user.id)
+  .single();
+
+2. Store it in state:
+
+setSelectedSection(data.section);
+
+3. Use this state in filtering logic
+
+---
+
+## IMPORTANT:
+
+- Do NOT wait for user input
+- Apply filter automatically once data is loaded
+- Handle loading state properly
+
+---
+
+# 🔄 2. HANDLE FIRST LOAD
+
+- While profile is loading → show loading state
+- After loading → apply section filter automatically
+
+---
+
+# 🧠 3. FALLBACK
+
+If no section found:
+- Keep default behavior (no filter or manual selection)
+
+---
+
+# ❌ 4. REMOVE USELESS FILTER
+
+Remove completely:
+
+"طريقة حساب المعدل المرجعي"
+
+This includes:
+- UI element
+- state
+- logic
+- any related functions
+
+---
+
+# 🎨 5. UI ADJUSTMENT
+
+After removing the filter:
+- Clean layout spacing
+- Keep design balanced
+- Do not leave empty gaps
+
+---
+
+# ⚙️ 6. PERFORMANCE
+
+- Use useEffect to fetch profile once
+- Use useState for selectedSection
+- Do not refetch unnecessarily
+
+---
+
+# 📦 OUTPUT
+
+Give:
+
+1. Updated useEffect to fetch user section
+2. Updated state logic (selectedSection)
+3. Updated filter logic using selectedSection
+4. Code showing removal of the unused filter
+5. Clean minimal changes (DO NOT rewrite entire component)
+
+---
+
+# ⚠️ IMPORTANT
+
+- Do NOT break existing filtering system
+- Do NOT change probability logic
+- Only enhance personalization + remove the filter

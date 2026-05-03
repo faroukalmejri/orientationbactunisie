@@ -1,9 +1,8 @@
 import React from "react";
-import { YearFilter, SortOption } from "../utils/logic";
+import { SortOption } from "../utils/logic";
 import { ALL_REGIONS } from "../utils/regions";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
@@ -13,8 +12,6 @@ interface FilterFormProps {
   onDomaineChange: (domaine: string) => void;
   score: number | "";
   onScoreChange: (score: number | "") => void;
-  yearFilter: YearFilter;
-  onYearFilterChange: (filter: YearFilter) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   sortOption: SortOption;
@@ -29,8 +26,6 @@ export function FilterForm({
   onDomaineChange,
   score,
   onScoreChange,
-  yearFilter,
-  onYearFilterChange,
   searchQuery,
   onSearchChange,
   sortOption,
@@ -39,8 +34,7 @@ export function FilterForm({
   onRegionChange,
 }: FilterFormProps) {
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
-      {/* Row 1: main filters */}
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="domaine-select" className="text-xs text-slate-500 font-medium">شعبتك</Label>
@@ -48,7 +42,7 @@ export function FilterForm({
             <SelectTrigger id="domaine-select" data-testid="select-domaine" className="h-10">
               <SelectValue placeholder="اختر شعبتك" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[220px] overflow-y-auto">
               {domaines.map((d) => (
                 <SelectItem key={d} value={d} data-testid={`option-domaine-${d}`}>{d}</SelectItem>
               ))}
@@ -78,7 +72,7 @@ export function FilterForm({
             <SelectTrigger id="region-select" data-testid="select-region" className="h-10">
               <SelectValue placeholder="كل الجهات" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[220px] overflow-y-auto">
               <SelectItem value="الكل">كل الجهات</SelectItem>
               {ALL_REGIONS.map((r) => (
                 <SelectItem key={r} value={r} data-testid={`option-region-${r}`}>{r}</SelectItem>
@@ -119,20 +113,6 @@ export function FilterForm({
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      {/* Row 2: year filter */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-slate-500 font-medium">طريقة حساب المعدل المرجعي</Label>
-        <Tabs value={yearFilter} onValueChange={(v) => onYearFilterChange(v as YearFilter)}>
-          <TabsList className="grid w-full max-w-xl grid-cols-5" dir="rtl">
-            <TabsTrigger value="الكل"  data-testid="tab-year-all">الكل (مرجح)</TabsTrigger>
-            <TabsTrigger value="معدل" data-testid="tab-year-avg">معدل</TabsTrigger>
-            <TabsTrigger value="2025" data-testid="tab-year-2025">2025</TabsTrigger>
-            <TabsTrigger value="2024" data-testid="tab-year-2024">2024</TabsTrigger>
-            <TabsTrigger value="2023" data-testid="tab-year-2023">2023</TabsTrigger>
-          </TabsList>
-        </Tabs>
       </div>
     </div>
   );
