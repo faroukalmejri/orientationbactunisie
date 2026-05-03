@@ -68,7 +68,7 @@ export default function SignUp() {
         } else {
           console.log("[signup] profile inserted successfully");
         }
-        setLocation("/");
+        setLocation("/app/orientation");
       } else {
         // Email confirmation required — profile will be created by DB trigger on confirm
         console.log("[signup] email confirmation required");

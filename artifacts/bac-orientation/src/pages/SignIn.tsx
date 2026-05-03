@@ -25,7 +25,7 @@ export default function SignIn() {
     try {
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
-      setLocation("/");
+      setLocation("/app/orientation");
     } catch (err: any) {
       const msg = err.message || "";
       if (msg.includes("Invalid login credentials")) {

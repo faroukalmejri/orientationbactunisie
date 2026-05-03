@@ -1,0 +1,198 @@
+You are a senior full-stack React developer.
+
+I already have a working React + Tailwind app that includes:
+- BAC orientation filtering logic
+- UI components (cards, filters, etc.)
+- Supabase authentication (sign in / sign up)
+
+I want to transform this into a FULL PLATFORM with a landing page, protected app, and multiple pages.
+
+IMPORTANT:
+- DO NOT break existing logic or UI
+- REUSE all existing components
+- Only restructure the app and add new pages
+
+---
+
+# 🎯 GOAL
+
+Create a full platform structure with:
+
+1. Public Landing Page (no auth required)
+2. Auth Pages (Sign In / Sign Up)
+3. Protected App (only accessible when logged in)
+
+---
+
+# 🧩 1. ROUTING STRUCTURE
+
+Use React Router.
+
+Routes:
+
+/ → Landing Page (public)
+/login → Sign In
+/signup → Sign Up
+
+/app → Protected Layout
+/app/orientation → existing orientation tool
+/app/calculator → BAC moyenne calculator
+/app/quiz → profiling quiz
+/app/guide → orientation guide
+/app/profile → user profile
+
+---
+
+# 🔒 2. PROTECTED ROUTES
+
+Create ProtectedRoute component:
+
+- If user is NOT logged in → redirect to /login
+- If logged in → allow access
+
+Wrap all /app routes with this protection
+
+---
+
+# 🏠 3. LANDING PAGE
+
+Create a modern landing page with:
+
+Sections:
+
+1. Hero:
+   - Title: platform for BAC orientation
+   - CTA buttons:
+     - "ابدأ الآن"
+     - "تسجيل الدخول"
+
+2. Features:
+   - Orientation tool
+   - Moyenne calculator
+   - Profiling quiz
+   - Orientation guide
+
+3. How it works:
+   - Step 1: Enter your score
+   - Step 2: Get recommendations
+   - Step 3: Choose your path
+
+4. CTA:
+   - "إنشاء حساب"
+
+---
+
+# 🔑 4. AUTH PAGES
+
+Reuse existing:
+
+- Sign In page
+- Sign Up page
+
+Improve UI slightly if needed
+
+After login/signup:
+→ redirect to /app/orientation
+
+---
+
+# 🧱 5. APP LAYOUT (PROTECTED)
+
+Create a dashboard layout:
+
+- Sidebar (RTL friendly)
+- Top navbar
+
+Sidebar links:
+
+- التوجيه (Orientation)
+- حساب المعدل (Calculator)
+- اختبار التوجيه (Quiz)
+- دليل التوجيه (Guide)
+- حسابي (Profile)
+
+---
+
+# ♻️ 6. REUSE EXISTING LOGIC
+
+IMPORTANT:
+
+- Keep your current orientation logic EXACTLY the same
+- Keep:
+  - 2025 score logic
+  - filtering
+  - probability
+  - UI cards
+
+Just move it into:
+/app/orientation
+
+---
+
+# 🧮 7. ADD PLACEHOLDER PAGES
+
+Create simple pages:
+
+/app/calculator
+/app/quiz
+/app/guide
+
+Each page:
+- Simple layout
+- Title
+- Placeholder content
+
+---
+
+# 👤 8. PROFILE PAGE
+
+Use existing profile logic:
+
+Display:
+- Name
+- Email
+- Phone
+- Region
+- Section
+
+---
+
+# ⚙️ 9. AUTH STATE MANAGEMENT
+
+Use Supabase:
+
+- Detect user on app load
+- Store session in context
+- Provide user globally
+
+---
+
+# 🎨 10. DESIGN RULES
+
+- Keep SAME design system (colors, spacing, cards)
+- TailwindCSS
+- RTL support
+- Clean SaaS-like UI
+
+---
+
+# 📦 OUTPUT
+
+Generate:
+
+1. Folder structure
+2. App.jsx with routing
+3. ProtectedRoute component
+4. Layout (Sidebar + Navbar)
+5. Landing page component
+6. Example page components
+7. Integration instructions
+
+---
+
+# ⚠️ IMPORTANT
+
+- DO NOT rewrite existing components
+- DO NOT change business logic
+- Only restructure + add pages
+- Keep everything modular and scalable
