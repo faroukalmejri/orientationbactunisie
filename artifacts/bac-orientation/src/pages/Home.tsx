@@ -111,7 +111,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-slate-50 pb-20 pt-14">
       <header className="bg-primary text-primary-foreground py-12 px-6 rounded-b-[2.5rem] shadow-sm mb-10">
         <div className="container mx-auto max-w-7xl flex flex-col items-center text-center">
           <div className="bg-primary-foreground/10 p-4 rounded-full mb-6">
