@@ -1,0 +1,64 @@
+Update the user signup form with the following changes:
+
+1. Make ALL form fields required
+
+All input fields in the signup form must be mandatory before submission:
+
+Full name
+Email
+Password
+Any additional profile fields already in the form
+Requirements:
+Add frontend validation for each field
+Prevent form submission if any field is empty
+Show clear inline error messages under each field (e.g. “This field is required”)
+Disable submit button until all fields are valid
+2. Add required marketing consent checkbox
+
+Add a checkbox under the signup form:
+
+Text:
+
+“I agree to receive emails and messages about educational content, updates, and marketing campaigns from the platform. I understand I can unsubscribe at any time.”
+
+Requirements:
+This checkbox must NOT be pre-checked
+It must be required to complete signup
+If not checked, show error:
+“You must accept to receive updates to continue.”
+Store in database:
+marketing_consent: boolean
+marketing_consent_at: datetime
+marketing_consent_ip: string (if available)
+3. Fix scroll issue in dropdown/list UI
+
+There is currently a list (dropdown or selection menu) that is not scrollable. Fix it.
+
+Requirements:
+Make the list container scrollable when content exceeds visible height
+Add proper CSS:
+max-height (e.g. 250px or appropriate value)
+overflow-y: auto
+Ensure smooth scrolling on both desktop and mobile
+Keep UI clean (no layout breaking or overflow outside container)
+If it is a dropdown:
+Ensure it opens above other elements (use z-index if needed)
+Ensure it stays inside viewport and does not push layout down
+4. General UX improvements
+Disable submit button until:
+all required fields are filled
+marketing consent is checked
+Add loading state on submit
+Ensure form is fully responsive on mobile
+5. Backend updates
+
+Update user model/schema:
+
+full_name (required)
+email (required)
+password (required)
+marketing_consent (boolean)
+marketing_consent_at (datetime)
+marketing_consent_ip (optional string)
+
+Ensure data is saved securely and consistently.

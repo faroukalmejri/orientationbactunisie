@@ -16,4 +16,7 @@ export interface Profile {
   region: string;
   section: string;
   email: string;
+  marketing_consent?: boolean;
+  marketing_consent_at?: string | null;
+  marketing_consent_ip?: string | null;
 }

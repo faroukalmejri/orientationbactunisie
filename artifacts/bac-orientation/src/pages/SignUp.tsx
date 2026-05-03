@@ -6,7 +6,85 @@ import { ALL_REGIONS } from "../utils/regions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Loader2, CheckCircle } from "lucide-react";
+import { GraduationCap, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+
+interface FieldErrors {
+  name?: string;
+  phone?: string;
+  email?: string;
+  password?: string;
+  region?: string;
+  section?: string;
+  consent?: string;
+}
+
+interface Touched {
+  name: boolean;
+  phone: boolean;
+  email: boolean;
+  password: boolean;
+  region: boolean;
+  section: boolean;
+  consent: boolean;
+}
+
+function validate(
+  fields: { name: string; phone: string; email: string; password: string; region: string; section: string; consent: boolean },
+  touched: Touched
+): FieldErrors {
+  const errors: FieldErrors = {};
+
+  if (touched.name && !fields.name.trim())
+    errors.name = "الاسم الكامل مطلوب";
+
+  if (touched.phone && !fields.phone.trim())
+    errors.phone = "رقم الهاتف مطلوب";
+
+  if (touched.email) {
+    if (!fields.email.trim()) errors.email = "البريد الإلكتروني مطلوب";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email))
+      errors.email = "صيغة البريد الإلكتروني غير صحيحة";
+  }
+
+  if (touched.password) {
+    if (!fields.password) errors.password = "كلمة المرور مطلوبة";
+    else if (fields.password.length < 6) errors.password = "كلمة المرور يجب أن تكون 6 أحرف على الأقل";
+  }
+
+  if (touched.region && !fields.region)
+    errors.region = "الجهة مطلوبة";
+
+  if (touched.section && !fields.section)
+    errors.section = "شعبة الباك مطلوبة";
+
+  if (touched.consent && !fields.consent)
+    errors.consent = "يجب قبول استقبال التحديثات للمتابعة";
+
+  return errors;
+}
+
+function isFormValid(fields: { name: string; phone: string; email: string; password: string; region: string; section: string; consent: boolean }): boolean {
+  return (
+    !!fields.name.trim() &&
+    !!fields.phone.trim() &&
+    !!fields.email.trim() &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email) &&
+    fields.password.length >= 6 &&
+    !!fields.region &&
+    !!fields.section &&
+    fields.consent
+  );
+}
+
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return (
+    <div className="flex items-center gap-1.5 mt-1" role="alert">
+      <AlertCircle className="w-3 h-3 text-red-500 shrink-0" />
+      <p className="text-xs text-red-500">{msg}</p>
+    </div>
+  );
+}
 
 export default function SignUp() {
   const [, setLocation] = useLocation();
@@ -18,9 +96,27 @@ export default function SignUp() {
   const [password, setPassword] = useState("");
   const [region, setRegion] = useState("");
   const [section, setSection] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+
+  const [touched, setTouched] = useState<Touched>({
+    name: false, phone: false, email: false,
+    password: false, region: false, section: false, consent: false,
+  });
+
+  const fields = { name, phone, email, password, region, section, consent };
+  const errors = validate(fields, touched);
+  const canSubmit = isFormValid(fields) && !loading;
+
+  function touch(field: keyof Touched) {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  }
+
+  function touchAll() {
+    setTouched({ name: true, phone: true, email: true, password: true, region: true, section: true, consent: true });
+  }
 
   const domaines = useMemo(() => {
     if (!data) return [];
@@ -30,21 +126,27 @@ export default function SignUp() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    touchAll();
+    setSubmitError(null);
 
-    if (!name || !phone || !email || !password || !region || !section) {
-      setError("يرجى ملء جميع الحقول");
-      return;
-    }
+    if (!isFormValid(fields)) return;
 
     setLoading(true);
+    const consentAt = new Date().toISOString();
+
     try {
-      // Step 1: Sign up — pass profile data as metadata so the DB trigger picks it up
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { name, phone, region, section },
+          data: {
+            name,
+            phone,
+            region,
+            section,
+            marketing_consent: consent,
+            marketing_consent_at: consentAt,
+          },
         },
       });
 
@@ -52,36 +154,35 @@ export default function SignUp() {
       if (!authData.user) throw new Error("فشل إنشاء الحساب");
 
       const userId = authData.user.id;
-      console.log("[signup] user created, id:", userId);
 
-      // Step 2: If we have an active session (email confirmation disabled),
-      // insert the profile directly. If not, the DB trigger handles it.
       if (authData.session) {
-        console.log("[signup] session active — inserting profile directly");
         const { error: profileError } = await supabase
           .from("profiles")
-          .upsert([{ id: userId, name, phone, region, section, email }]);
+          .upsert([{
+            id: userId,
+            name,
+            phone,
+            region,
+            section,
+            email,
+            marketing_consent: consent,
+            marketing_consent_at: consentAt,
+          }]);
 
         if (profileError) {
-          // Non-fatal: trigger may have already inserted it
           console.warn("[signup] profile upsert warning:", profileError.message);
-        } else {
-          console.log("[signup] profile inserted successfully");
         }
         setLocation("/app/orientation");
       } else {
-        // Email confirmation required — profile will be created by DB trigger on confirm
-        console.log("[signup] email confirmation required");
         setNeedsConfirmation(true);
       }
     } catch (err: any) {
       const msg = err.message || "";
       if (msg.includes("already registered") || msg.includes("User already registered")) {
-        setError("هذا البريد الإلكتروني مسجل مسبقاً. جرب تسجيل الدخول.");
+        setSubmitError("هذا البريد الإلكتروني مسجل مسبقاً. جرب تسجيل الدخول.");
       } else {
-        setError(msg || "حدث خطأ غير متوقع");
+        setSubmitError(msg || "حدث خطأ غير متوقع");
       }
-      console.error("[signup] error:", err);
     } finally {
       setLoading(false);
     }
@@ -96,11 +197,12 @@ export default function SignUp() {
           </div>
           <h2 className="text-xl font-bold text-slate-800 mb-2">تحقق من بريدك الإلكتروني</h2>
           <p className="text-slate-500 text-sm mb-6">
-            أرسلنا رابط تأكيد إلى <span className="font-semibold text-slate-700">{email}</span>.
+            أرسلنا رابط تأكيد إلى{" "}
+            <span className="font-semibold text-slate-700">{email}</span>.{" "}
             بعد التأكيد، سيتم حفظ بياناتك تلقائياً.
           </p>
           <button
-            onClick={() => setLocation("/signin")}
+            onClick={() => setLocation("/login")}
             className="w-full bg-primary text-primary-foreground font-bold py-3 rounded-xl hover:opacity-90 transition-opacity"
           >
             الذهاب إلى تسجيل الدخول
@@ -111,9 +213,9 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4" dir="rtl">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 py-10" dir="rtl">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="inline-flex bg-primary/10 p-3 rounded-full mb-3">
             <GraduationCap className="w-8 h-8 text-primary" />
           </div>
@@ -122,112 +224,207 @@ export default function SignUp() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <form onSubmit={handleSubmit} className="space-y-4" data-testid="signup-form">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate data-testid="signup-form">
 
-            <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-xs text-slate-500 font-medium">الاسم الكامل</Label>
+            {/* Name */}
+            <div className="space-y-1">
+              <Label htmlFor="name" className="text-xs text-slate-500 font-medium">
+                الاسم الكامل <span className="text-red-400">*</span>
+              </Label>
               <Input
                 id="name"
                 type="text"
                 placeholder="أدخل اسمك الكامل"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                onBlur={() => touch("name")}
                 data-testid="input-name"
-                className="h-10"
+                className={`h-10 ${touched.name && errors.name ? "border-red-400 focus-visible:ring-red-300" : ""}`}
               />
+              <FieldError msg={touched.name ? errors.name : undefined} />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="phone" className="text-xs text-slate-500 font-medium">رقم الهاتف</Label>
+            {/* Phone */}
+            <div className="space-y-1">
+              <Label htmlFor="phone" className="text-xs text-slate-500 font-medium">
+                رقم الهاتف <span className="text-red-400">*</span>
+              </Label>
               <Input
                 id="phone"
-                type="text"
+                type="tel"
                 placeholder="مثال: 22 000 000"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                onBlur={() => touch("phone")}
                 data-testid="input-phone"
-                className="h-10"
+                className={`h-10 ${touched.phone && errors.phone ? "border-red-400 focus-visible:ring-red-300" : ""}`}
               />
+              <FieldError msg={touched.phone ? errors.phone : undefined} />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs text-slate-500 font-medium">البريد الإلكتروني</Label>
+            {/* Email */}
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-xs text-slate-500 font-medium">
+                البريد الإلكتروني <span className="text-red-400">*</span>
+              </Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="example@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => touch("email")}
                 data-testid="input-email"
-                className="h-10 text-left"
+                className={`h-10 text-left ${touched.email && errors.email ? "border-red-400 focus-visible:ring-red-300" : ""}`}
                 dir="ltr"
               />
+              <FieldError msg={touched.email ? errors.email : undefined} />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-xs text-slate-500 font-medium">كلمة المرور</Label>
+            {/* Password */}
+            <div className="space-y-1">
+              <Label htmlFor="password" className="text-xs text-slate-500 font-medium">
+                كلمة المرور <span className="text-red-400">*</span>
+              </Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="6 أحرف على الأقل"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => touch("password")}
                 data-testid="input-password"
-                className="h-10"
+                className={`h-10 ${touched.password && errors.password ? "border-red-400 focus-visible:ring-red-300" : ""}`}
               />
+              <FieldError msg={touched.password ? errors.password : undefined} />
             </div>
 
+            {/* Region + Section */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-slate-500 font-medium">الجهة</Label>
-                <Select value={region} onValueChange={setRegion}>
-                  <SelectTrigger data-testid="select-region" className="h-10">
+              <div className="space-y-1">
+                <Label className="text-xs text-slate-500 font-medium">
+                  الجهة <span className="text-red-400">*</span>
+                </Label>
+                <Select
+                  value={region}
+                  onValueChange={(v) => { setRegion(v); touch("region"); }}
+                >
+                  <SelectTrigger
+                    data-testid="select-region"
+                    className={`h-10 ${touched.region && errors.region ? "border-red-400" : ""}`}
+                    onBlur={() => touch("region")}
+                  >
                     <SelectValue placeholder="اختر جهتك" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[220px] overflow-y-auto">
                     {ALL_REGIONS.map((r) => (
                       <SelectItem key={r} value={r}>{r}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError msg={touched.region ? errors.region : undefined} />
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs text-slate-500 font-medium">شعبة الباك</Label>
-                <Select value={section} onValueChange={setSection}>
-                  <SelectTrigger data-testid="select-section" className="h-10">
+              <div className="space-y-1">
+                <Label className="text-xs text-slate-500 font-medium">
+                  شعبة الباك <span className="text-red-400">*</span>
+                </Label>
+                <Select
+                  value={section}
+                  onValueChange={(v) => { setSection(v); touch("section"); }}
+                >
+                  <SelectTrigger
+                    data-testid="select-section"
+                    className={`h-10 ${touched.section && errors.section ? "border-red-400" : ""}`}
+                    onBlur={() => touch("section")}
+                  >
                     <SelectValue placeholder="اختر شعبتك" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[220px] overflow-y-auto">
                     {domaines.map((d) => (
                       <SelectItem key={d} value={d}>{d}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <FieldError msg={touched.section ? errors.section : undefined} />
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2.5" data-testid="signup-error">
-                {error}
+            {/* Marketing consent */}
+            <div className={`rounded-xl border p-4 transition-colors ${
+              touched.consent && errors.consent
+                ? "border-red-300 bg-red-50"
+                : consent
+                ? "border-primary/30 bg-primary/5"
+                : "border-slate-200 bg-slate-50"
+            }`}>
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <div className="relative mt-0.5 shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => { setConsent(e.target.checked); touch("consent"); }}
+                    data-testid="checkbox-consent"
+                    className="sr-only"
+                  />
+                  <div
+                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                      consent
+                        ? "bg-primary border-primary"
+                        : touched.consent && errors.consent
+                        ? "border-red-400 bg-white"
+                        : "border-slate-300 bg-white"
+                    }`}
+                  >
+                    {consent && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 12 12">
+                        <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs text-slate-600 leading-relaxed">
+                  أوافق على استقبال رسائل بريد إلكتروني حول المحتوى التعليمي والتحديثات والحملات التسويقية من المنصة.
+                  أفهم أنه يمكنني إلغاء الاشتراك في أي وقت.
+                  <span className="text-red-400 mr-1">*</span>
+                </span>
+              </label>
+              <FieldError msg={touched.consent ? errors.consent : undefined} />
+            </div>
+
+            {/* Submit error */}
+            {submitError && (
+              <div
+                className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3"
+                data-testid="signup-error"
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{submitError}</span>
               </div>
             )}
 
+            {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-primary text-primary-foreground font-bold py-3 rounded-xl hover:opacity-90 active:scale-95 transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-60"
+              disabled={!canSubmit}
+              className="w-full bg-primary text-primary-foreground font-bold py-3 rounded-xl hover:opacity-90 active:scale-95 transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100"
               data-testid="btn-signup"
             >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              إنشاء الحساب
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  جارٍ الإنشاء...
+                </>
+              ) : (
+                "إنشاء الحساب"
+              )}
             </button>
           </form>
 
           <p className="text-center text-sm text-slate-500 mt-5">
             لديك حساب؟{" "}
             <button
-              onClick={() => setLocation("/signin")}
+              onClick={() => setLocation("/login")}
               className="text-primary font-semibold hover:underline"
               data-testid="link-signin"
             >
