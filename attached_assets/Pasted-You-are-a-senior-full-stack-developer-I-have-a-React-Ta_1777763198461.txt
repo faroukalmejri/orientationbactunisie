@@ -1,0 +1,176 @@
+You are a senior full-stack developer.
+
+I have a React + Tailwind web app. I want to add authentication (Sign Up / Sign In) using Supabase.
+
+---
+
+# 🎯 GOAL
+
+Implement a full authentication system with:
+
+- Sign Up
+- Sign In
+- User Profile
+
+---
+
+# ⚙️ TECH STACK
+
+- React (frontend)
+- TailwindCSS
+- Supabase (auth + database)
+
+---
+
+# 🧩 1. SIGN UP FORM
+
+Create a Sign Up page with the following inputs:
+
+- Name (text)
+- Phone Number (text)
+- Email (email)
+- Password (password)
+- Region (dropdown → Tunisian regions)
+- Section Bac (dropdown → use existing values in the app)
+
+---
+
+## 🇹🇳 REGION DROPDOWN (24 regions)
+
+Use this list:
+
+Tunis  
+Ariana  
+Ben Arous  
+Manouba  
+Nabeul  
+Zaghouan  
+Bizerte  
+Béja  
+Jendouba  
+Kef  
+Siliana  
+Sousse  
+Monastir  
+Mahdia  
+Sfax  
+Kairouan  
+Kasserine  
+Sidi Bouzid  
+Gabès  
+Medenine  
+Tataouine  
+Gafsa  
+Tozeur  
+Kebili  
+
+---
+
+# 🔐 2. AUTH LOGIC
+
+Use Supabase Auth:
+
+- Sign up with email + password
+- After signup:
+  → Save additional fields (name, phone, region, section) in a "profiles" table
+
+---
+
+## 🗄 DATABASE (Supabase)
+
+Create table: profiles
+
+Columns:
+
+- id (uuid, primary key, linked to auth user id)
+- name (text)
+- phone (text)
+- region (text)
+- section (text)
+- email (text)
+
+---
+
+# 🧠 3. SIGN UP FLOW
+
+1. User fills form
+2. Call Supabase auth.signUp()
+3. On success:
+   - Insert user data into "profiles" table
+4. Redirect to dashboard/home
+
+---
+
+# 🔑 4. SIGN IN FORM
+
+Inputs:
+- Email
+- Password
+
+Use:
+- supabase.auth.signInWithPassword()
+
+---
+
+# 👤 5. USER PROFILE
+
+After login:
+
+- Fetch user profile from "profiles" table
+- Display:
+  - Name
+  - Email
+  - Phone
+  - Region
+  - Section
+
+---
+
+# 🚪 6. LOGOUT
+
+Add logout button:
+
+- supabase.auth.signOut()
+
+---
+
+# 🔒 7. SESSION HANDLING
+
+- Keep user logged in
+- Detect auth state on app load
+- Redirect if not logged in (optional protected route)
+
+---
+
+# 🎨 8. UI REQUIREMENTS
+
+- Clean modern UI (Tailwind)
+- RTL friendly
+- Form validation:
+  - required fields
+  - valid email
+- Show error messages
+- Show loading states
+
+---
+
+# 📦 OUTPUT
+
+Generate:
+
+1. Supabase setup (client config)
+2. SignUp component
+3. SignIn component
+4. Profile component
+5. Auth context (optional but clean)
+6. Example SQL for "profiles" table
+7. Clear integration steps
+
+---
+
+# ⚠️ IMPORTANT
+
+- Do NOT break existing app logic
+- Keep code modular
+- Handle errors properly
+- Use async/await cleanly
