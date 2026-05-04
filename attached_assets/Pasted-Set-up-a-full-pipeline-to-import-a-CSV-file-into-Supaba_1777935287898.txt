@@ -1,0 +1,131 @@
+Set up a full pipeline to import a CSV file into Supabase and create a structured database table for orientation data.
+
+---
+
+# 1. Goal
+
+Take the provided CSV file and:
+
+* Create a Supabase table automatically (if it doesn’t exist)
+* Insert all CSV rows into it
+* Ensure correct mapping of columns
+* Preserve Arabic text correctly
+* Prepare the database for search and filtering by bac section and score
+
+---
+
+# 2. Table creation (Supabase)
+
+Create a table named:
+
+👉 `orientations`
+
+## Columns (based on CSV headers):
+
+* domaine → TEXT
+* code_specialite → TEXT (do NOT force integer)
+* nom_specialite → TEXT
+* universite → TEXT
+* institution → TEXT
+* baccalaureat → TEXT
+* score_2023 → DOUBLE PRECISION
+* score_2024 → DOUBLE PRECISION
+* score_2025 → DOUBLE PRECISION
+
+---
+
+## Important rules:
+
+* Do NOT assume score = moyenne (they are different concepts)
+* Scores can contain decimals and large values → use DOUBLE PRECISION
+* Keep all text fields UTF-8 safe (Arabic included)
+
+---
+
+# 3. CSV Import logic
+
+Implement a script that:
+
+1. Reads the CSV file provided in the project
+
+2. Normalizes headers:
+
+   * lowercase all headers
+   * replace spaces with underscores
+     Example:
+     "code specialite" → "code_specialite"
+
+3. Maps CSV columns directly into Supabase fields
+
+4. Inserts rows in bulk (not one-by-one if possible for performance)
+
+---
+
+# 4. Data cleaning rules
+
+Before inserting:
+
+* Trim all strings
+* Ensure Arabic text is NOT reversed or corrupted
+* Convert numeric fields safely:
+
+  * score_2023 → float
+  * score_2024 → float
+  * score_2025 → float
+* Handle missing values:
+
+  * insert NULL instead of breaking
+
+---
+
+# 5. Supabase setup
+
+Use environment variables:
+
+* SUPABASE_URL
+* SUPABASE_ANON_KEY
+
+Install Supabase client if needed.
+
+---
+
+# 6. Performance optimization
+
+After table creation, add indexes:
+
+* baccalaureat
+* score_2024
+
+---
+
+# 7. Output verification
+
+After import:
+
+* Print total rows inserted
+* Print sample of 5 inserted rows
+* Log any skipped or invalid rows
+
+---
+
+# 8. Final result
+
+After running this script:
+
+* Supabase contains a clean `orientations` table
+* All CSV data is imported correctly
+* Arabic text is preserved
+* Data is ready for filtering:
+
+  * by bac section
+  * by score thresholds
+  * by university / institution
+
+---
+
+# 9. Future readiness
+
+Make sure the system is designed so that:
+
+* New CSV updates can be re-imported safely
+* Duplicate prevention can be added later if needed

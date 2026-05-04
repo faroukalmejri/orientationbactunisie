@@ -16,46 +16,46 @@ export default function Home() {
   const { data, loading, error } = useCSVData();
   const { profile, user } = useAuth();
 
-  const [selectedDomaine, setSelectedDomaine] = useState<string>("");
+  const [selectedBac, setSelectedBac] = useState<string>("");
   const [score, setScore] = useState<number | "">("");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("prob-desc");
   const [selectedRegion, setSelectedRegion] = useState<string>("الكل");
   const [profileSectionApplied, setProfileSectionApplied] = useState(false);
 
-  const domaines = useMemo(() => {
+  // Distinct BAC sections from the data
+  const bacSections = useMemo(() => {
     if (!data) return [];
-    const unique = new Set(data.map((r) => r.domaine).filter(Boolean));
+    const unique = new Set(data.map((r) => r.baccalaureat).filter(Boolean));
     return Array.from(unique).sort();
   }, [data]);
 
-  // Auto-select section from user profile (runs once when profile + domaines are ready)
+  // Auto-select section from user profile (runs once when profile + sections are ready)
   useEffect(() => {
     if (profileSectionApplied) return;
-    if (domaines.length === 0) return;
+    if (bacSections.length === 0) return;
 
     const section = profile?.section ?? user?.user_metadata?.section ?? null;
 
-    if (section && domaines.includes(section)) {
-      setSelectedDomaine(section);
+    if (section && bacSections.includes(section)) {
+      setSelectedBac(section);
       setProfileSectionApplied(true);
-    } else if (!section && !selectedDomaine) {
-      // No profile section — fall back to first domaine
-      setSelectedDomaine(domaines[0]);
+    } else if (!section && !selectedBac) {
+      setSelectedBac(bacSections[0]);
       setProfileSectionApplied(true);
     }
-  }, [domaines, profile, user, profileSectionApplied, selectedDomaine]);
+  }, [bacSections, profile, user, profileSectionApplied, selectedBac]);
 
   // Always use weighted average (الكل) as the reference score method
   const YEAR_FILTER = "الكل" as const;
 
   const processedResults = useMemo(() => {
-    if (!data || score === "" || !selectedDomaine) return [];
+    if (!data || score === "" || !selectedBac) return [];
 
     const numScore = Number(score);
 
     const mapped = data
-      .filter((row) => row.domaine === selectedDomaine)
+      .filter((row) => row.baccalaureat === selectedBac)
       .map((row) => {
         const effectiveScore = getEffectiveScore(row, YEAR_FILTER);
         if (effectiveScore === null) return null;
@@ -79,8 +79,8 @@ export default function Home() {
       const q = searchQuery.toLowerCase();
       results = results.filter(
         (r) =>
-          r.item.specialite?.toLowerCase().includes(q) ||
-          r.item.etablissement?.toLowerCase().includes(q) ||
+          r.item.nom_specialite?.toLowerCase().includes(q) ||
+          r.item.institution?.toLowerCase().includes(q) ||
           r.item.universite?.toLowerCase().includes(q)
       );
     }
@@ -97,14 +97,14 @@ export default function Home() {
             : a.diff - b.diff;
         case "score-asc":  return a.effectiveScore - b.effectiveScore;
         case "score-desc": return b.effectiveScore - a.effectiveScore;
-        case "alpha-asc":  return a.item.specialite.localeCompare(b.item.specialite, "ar");
-        case "alpha-desc": return b.item.specialite.localeCompare(a.item.specialite, "ar");
+        case "alpha-asc":  return a.item.nom_specialite.localeCompare(b.item.nom_specialite, "ar");
+        case "alpha-desc": return b.item.nom_specialite.localeCompare(a.item.nom_specialite, "ar");
         default:           return 0;
       }
     });
 
     return results;
-  }, [data, score, selectedDomaine, searchQuery, sortOption, selectedRegion]);
+  }, [data, score, selectedBac, searchQuery, sortOption, selectedRegion]);
 
   if (error) {
     return (
@@ -139,9 +139,9 @@ export default function Home() {
       <main className="container mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
         <section className="-mt-16 relative z-10">
           <FilterForm
-            domaines={domaines}
-            selectedDomaine={selectedDomaine}
-            onDomaineChange={setSelectedDomaine}
+            domaines={bacSections}
+            selectedDomaine={selectedBac}
+            onDomaineChange={setSelectedBac}
             score={score}
             onScoreChange={setScore}
             searchQuery={searchQuery}

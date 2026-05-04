@@ -5,17 +5,21 @@ export type Category   = "مضمون" | "تنافسي" | "طموح";
 export type Trend      = "up" | "down" | "stable";
 export type SortOption = "prob-desc" | "prob-asc" | "score-asc" | "score-desc" | "alpha-asc" | "alpha-desc";
 
-/** Shape of a single filière row — mirrors the `filieres` Supabase table. */
+/**
+ * One row from the `orientations` Supabase table.
+ * Each row = one programme × one BAC section.
+ */
 export interface FiliereRow {
-  domaine:        string;
-  universite:     string;
-  etablissement:  string;
-  code_specialite: number;
-  specialite:     string;
-  score_2023?:    number | null;
-  score_2024?:    number | null;
-  score_2025?:    number | null;
-  region:         string;
+  domaine:         string;          // Field-of-study category (e.g. "الهندسة")
+  code_specialite: string;          // Programme code (TEXT)
+  nom_specialite:  string;          // Programme name
+  universite:      string;
+  institution:     string;          // Institution / faculty name
+  baccalaureat:    string;          // BAC section this row applies to
+  score_2023?:     number | null;
+  score_2024?:     number | null;
+  score_2025?:     number | null;
+  region:          string;          // Derived from universite/institution
 }
 
 /** @deprecated Use FiliereRow — kept for backward compatibility. */
@@ -47,7 +51,7 @@ export function getEffectiveScore(row: FiliereRow, yearFilter: YearFilter): numb
     return scores.reduce((a, b) => a + b, 0) / scores.length;
   }
 
-  // "الكل" → weighted average  (2025×3, 2024×2, 2023×1)
+  // "الكل" → weighted average (2025×3, 2024×2, 2023×1)
   let sum = 0, weights = 0;
   if (s25 != null) { sum += s25 * 3; weights += 3; }
   if (s24 != null) { sum += s24 * 2; weights += 2; }

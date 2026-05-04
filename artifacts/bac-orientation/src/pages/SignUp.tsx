@@ -117,15 +117,15 @@ export default function SignUp() {
     setTouched({ name: true, phone: true, email: true, password: true, region: true, section: true, consent: true });
   }
 
-  // Fetch distinct BAC sections from Supabase
+  // Fetch distinct BAC sections from Supabase orientations table
   useEffect(() => {
     supabase
-      .from("filieres")
-      .select("domaine")
-      .order("domaine")
+      .from("orientations")
+      .select("baccalaureat")
+      .order("baccalaureat")
       .then(({ data: rows }) => {
         if (rows && rows.length > 0) {
-          const unique = Array.from(new Set(rows.map((r: any) => r.domaine).filter(Boolean)));
+          const unique = Array.from(new Set(rows.map((r: any) => r.baccalaureat).filter(Boolean)));
           setDomaines(unique as string[]);
         }
       });

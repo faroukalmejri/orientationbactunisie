@@ -221,12 +221,6 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.105.1
         version: 2.105.1
-      '@types/papaparse':
-        specifier: ^5.5.2
-        version: 5.5.2
-      papaparse:
-        specifier: ^5.5.3
-        version: 5.5.3
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0
@@ -645,10 +639,20 @@ importers:
         version: 0.31.9
 
   scripts:
+    dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.105.1
+        version: 2.105.1
+      papaparse:
+        specifier: ^5.5.3
+        version: 5.5.3
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5
+      '@types/papaparse':
+        specifier: ^5.5.2
+        version: 5.5.2
       tsx:
         specifier: 'catalog:'
         version: 4.21.0

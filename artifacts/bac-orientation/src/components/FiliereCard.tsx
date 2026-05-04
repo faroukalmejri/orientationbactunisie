@@ -1,10 +1,10 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { CSVRow, Category, Trend, YearFilter } from "../utils/logic";
-import { MapPin, Building2, University } from "lucide-react";
+import { FiliereRow, Category, Trend, YearFilter } from "../utils/logic";
+import { MapPin, Building2 } from "lucide-react";
 
 interface FiliereCardProps {
-  item: CSVRow;
+  item: FiliereRow;
   effectiveScore: number;
   diff: number;
   category: Category;
@@ -95,7 +95,7 @@ export function FiliereCard({
         <div className="px-4 pt-4 pb-3 border-b border-slate-100 flex flex-col gap-2">
           <div className="flex items-start justify-between gap-3">
             <h3 className="font-bold text-[15px] leading-snug text-slate-800 flex-1">
-              {item.specialite}
+              {item.nom_specialite}
             </h3>
             <span
               className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${cat.bg} ${cat.text} ${cat.border}`}
@@ -107,7 +107,7 @@ export function FiliereCard({
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5 text-xs text-slate-500">
               <Building2 className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">{item.etablissement}</span>
+              <span className="truncate">{item.institution}</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-slate-400">
               <MapPin className="w-3.5 h-3.5 shrink-0" />
