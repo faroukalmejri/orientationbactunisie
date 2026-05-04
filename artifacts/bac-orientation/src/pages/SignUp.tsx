@@ -1,7 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "../lib/supabase";
-import { useCSVData } from "../hooks/useCSVData";
 import { ALL_REGIONS } from "../utils/regions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,7 +87,6 @@ function FieldError({ msg }: { msg?: string }) {
 
 export default function SignUp() {
   const [, setLocation] = useLocation();
-  const { data } = useCSVData();
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -100,6 +98,7 @@ export default function SignUp() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [domaines, setDomaines] = useState<string[]>([]);
 
   const [touched, setTouched] = useState<Touched>({
     name: false, phone: false, email: false,
@@ -118,11 +117,19 @@ export default function SignUp() {
     setTouched({ name: true, phone: true, email: true, password: true, region: true, section: true, consent: true });
   }
 
-  const domaines = useMemo(() => {
-    if (!data) return [];
-    const unique = new Set(data.map((r) => r.domaine).filter(Boolean));
-    return Array.from(unique).sort();
-  }, [data]);
+  // Fetch distinct BAC sections from Supabase
+  useEffect(() => {
+    supabase
+      .from("filieres")
+      .select("domaine")
+      .order("domaine")
+      .then(({ data: rows }) => {
+        if (rows && rows.length > 0) {
+          const unique = Array.from(new Set(rows.map((r: any) => r.domaine).filter(Boolean)));
+          setDomaines(unique as string[]);
+        }
+      });
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

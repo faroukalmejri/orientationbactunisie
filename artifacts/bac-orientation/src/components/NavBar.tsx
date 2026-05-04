@@ -22,7 +22,7 @@ export function NavBar() {
         data-testid="nav-home"
       >
         <GraduationCap className="w-5 h-5" />
-        توجيه الباك
+        GuideApp
       </button>
 
       {!loading && (
@@ -34,7 +34,7 @@ export function NavBar() {
               data-testid="nav-profile"
             >
               <User className="w-4 h-4" />
-              {profile?.name || "ملفي"}
+              {profile?.name || "حسابي الشخصي"}
             </button>
           ) : (
             <button

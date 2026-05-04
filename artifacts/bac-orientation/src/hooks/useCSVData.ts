@@ -1,50 +1,31 @@
 import { useState, useEffect } from "react";
-import Papa from "papaparse";
-import csvUrl from "@assets/Data_Last_Score_Bac_23_24_25_2_1777759966038.csv?url";
-import { CSVRow } from "../utils/logic";
-import { getRegionFromRow } from "../utils/regions";
+import { supabase } from "../lib/supabase";
+import { FiliereRow } from "../utils/logic";
 
+// Backward-compat alias — callers still import { useCSVData }
 export function useCSVData() {
-  const [data, setData] = useState<CSVRow[]>([]);
+  const [data, setData] = useState<FiliereRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch(csvUrl);
-        const csvText = await response.text();
+        const { data: rows, error: sbError } = await supabase
+          .from("filieres")
+          .select("*")
+          .order("domaine");
 
-        Papa.parse(csvText, {
-          header: true,
-          dynamicTyping: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            const parsedData: CSVRow[] = results.data.map((row: any) => {
-              const universite = row.universite?.trim() || "";
-              const etablissement = row.etablissement?.trim() || "";
-              return {
-                domaine: row.domaine?.trim() || "",
-                universite,
-                etablissement,
-                code_specialite: row.code_specialite,
-                specialite: row.specialite?.trim() || "",
-                score_2023: row.score_2023 ? parseFloat(row.score_2023) : null,
-                score_2024: row.score_2024 ? parseFloat(row.score_2024) : null,
-                score_2025: row.score_2025 ? parseFloat(row.score_2025) : null,
-                region: getRegionFromRow(universite, etablissement),
-              };
-            });
-            setData(parsedData);
-            setLoading(false);
-          },
-          error: (err: any) => {
-            setError(err.message);
-            setLoading(false);
-          },
-        });
+        if (sbError) {
+          // Table may not exist yet — treat as empty, not a fatal error
+          console.warn("[filieres] Supabase fetch warning:", sbError.message);
+          setData([]);
+        } else {
+          setData((rows ?? []) as FiliereRow[]);
+        }
       } catch (err: any) {
-        setError(err.message);
+        setError(err.message ?? "حدث خطأ أثناء تحميل البيانات");
+      } finally {
         setLoading(false);
       }
     }
