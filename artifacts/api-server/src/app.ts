@@ -10,14 +10,16 @@ app.use(
   pinoHttp({
     logger,
     serializers: {
-      req(req) {
+      // Added ": any" here to satisfy strict TypeScript rules
+      req(req: any) {
         return {
           id: req.id,
           method: req.method,
           url: req.url?.split("?")[0],
         };
       },
-      res(res) {
+      // Added ": any" here as well
+      res(res: any) {
         return {
           statusCode: res.statusCode,
         };
@@ -25,6 +27,7 @@ app.use(
     },
   }),
 );
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
