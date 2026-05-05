@@ -1,4 +1,10 @@
 {
+  "compilerOptions": {
+    "noImplicitAny": false, 
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+    // ... keep your other existing settings
+  }
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
